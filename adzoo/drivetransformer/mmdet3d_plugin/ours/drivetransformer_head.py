@@ -1901,7 +1901,10 @@ class DriveTransformerlHead(BaseModule):
             scores = preds['scores']
             labels = preds['labels']
             trajs = preds['trajs']
-            trajs = trajs.view(trajs.shape[0], self.fut_mode, -1, 2)
+            if trajs.numel() == 0:
+                trajs = trajs.new_zeros(0, self.fut_mode, 0, 2)
+            else:
+                trajs = trajs.view(trajs.shape[0], self.fut_mode, -1, 2)
             yaws = bboxes.yaw
             for agent_idx in range(trajs.shape[0]):
                 trajs[agent_idx] = self.rotate_agent_trajs_to_ego(bbox_yaw=yaws[agent_idx], trajs=trajs[agent_idx])

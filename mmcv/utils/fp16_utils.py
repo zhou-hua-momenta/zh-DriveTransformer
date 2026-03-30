@@ -109,7 +109,7 @@ def auto_fp16(apply_to=None, out_fp32=False):
                 for i, arg_name in enumerate(arg_names):
                     if arg_name in args_to_cast:
                         new_args.append(
-                            cast_tensor_type(args[i], torch.float, torch.bfloat16))
+                            cast_tensor_type(args[i], torch.float, torch.float16))
                     else:
                         new_args.append(args[i])
             # convert the kwargs that need to be processed
@@ -118,18 +118,18 @@ def auto_fp16(apply_to=None, out_fp32=False):
                 for arg_name, arg_value in kwargs.items():
                     if arg_name in args_to_cast:
                         new_kwargs[arg_name] = cast_tensor_type(
-                            arg_value, torch.float, torch.bfloat16)
+                            arg_value, torch.float, torch.float16)
                     else:
                         new_kwargs[arg_name] = arg_value
             # apply converted arguments to the decorated method
             if (digit_version(TORCH_VERSION) >= digit_version('1.6.0')):
-                with autocast(enabled=True, dtype=torch.bfloat16):
+                with autocast(enabled=True, dtype=torch.float16):
                     output = old_func(*new_args, **new_kwargs)
             else:
                 output = old_func(*new_args, **new_kwargs)
             # cast the results back to fp32 if necessary
             if out_fp32:
-                output = cast_tensor_type(output, torch.bfloat16, torch.float)
+                output = cast_tensor_type(output, torch.float16, torch.float)
             return output
 
         return new_func
@@ -194,7 +194,7 @@ def force_fp32(apply_to=None, out_fp16=False):
                 for i, arg_name in enumerate(arg_names):
                     if arg_name in args_to_cast:
                         new_args.append(
-                            cast_tensor_type(args[i], torch.bfloat16, torch.float))
+                            cast_tensor_type(args[i], torch.float16, torch.float))
                     else:
                         new_args.append(args[i])
             # convert the kwargs that need to be processed
@@ -203,7 +203,7 @@ def force_fp32(apply_to=None, out_fp16=False):
                 for arg_name, arg_value in kwargs.items():
                     if arg_name in args_to_cast:
                         new_kwargs[arg_name] = cast_tensor_type(
-                            arg_value, torch.bfloat16, torch.float)
+                            arg_value, torch.float16, torch.float)
                     else:
                         new_kwargs[arg_name] = arg_value
             # apply converted arguments to the decorated method
@@ -214,7 +214,7 @@ def force_fp32(apply_to=None, out_fp16=False):
                 output = old_func(*new_args, **new_kwargs)
             # cast the results back to fp32 if necessary
             if out_fp16:
-                output = cast_tensor_type(output, torch.float, torch.bfloat16)
+                output = cast_tensor_type(output, torch.float, torch.float16)
             return output
 
         return new_func
@@ -270,7 +270,7 @@ def patch_norm_fp32(module):
     if isinstance(module, (nn.modules.batchnorm._BatchNorm, nn.GroupNorm)):
         module.float()
         if isinstance(module, nn.GroupNorm) or torch.__version__ < '1.3':
-            module.forward = patch_forward_method(module.forward, torch.bfloat16,
+            module.forward = patch_forward_method(module.forward, torch.float16,
                                                   torch.float)
     for child in module.children():
         patch_norm_fp32(child)
